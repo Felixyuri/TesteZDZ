@@ -1,101 +1,61 @@
 <template>
-  <v-data-table
-    :headers="headers"
-    :items="processedProducts"
-  >
+  <v-data-table :headers="headers" :items="processedProducts">
     <template v-slot:top>
-      <v-toolbar
-        flat
-      >
+      <v-toolbar flat>
         <v-toolbar-title>Produtos</v-toolbar-title>
-        <v-divider
-          class="mx-4"
-          inset
-          vertical
-        ></v-divider>
+        <v-divider class="mx-4" inset vertical></v-divider>
         <v-spacer></v-spacer>
         <template>
-            <v-btn
-              class="mb-2"
-              color="primary"
-              dark
-              @click="addNewProduct"
-            >
-              Novo Produto
-            </v-btn>
-          </template>
-        <v-dialog
-          v-model="dialog"
-          max-width="500px"
-        >
+          <v-btn class="mb-2" color="primary" dark @click="addNewProduct">Novo Produto</v-btn>
+        </template>
+        <v-dialog v-model="dialog" max-width="500px">
           <v-card>
-            <v-card-title>
-              <span class="text-h5">{{ formTitle }}</span>
-            </v-card-title>
-
-            <v-card-text>
-              <v-container>
-                <v-row>
-                  <v-col
-                    cols="12"
-                    md="4"
-                    sm="6"
-                  >
-                    <v-text-field
-                      v-model="product.name"
-                      :rules="[v => !!v || 'Insira um nome']"
-                      required
-                      label="Nome"
-                    ></v-text-field>
-                  </v-col>
-                  <v-col
-                    cols="12"
-                    md="4"
-                    sm="6"
-                  >
-                    <v-text-field
-                      v-model="product.quantity"
-                      type="number"
-                      :rules="[v => !!v || 'Insira uma quantidade']"
-                      label="Quantidade"
-                      required
-                    ></v-text-field>
-                  </v-col>
-                  <v-col
-                    cols="12"
-                    md="4"
-                    sm="6"
-                  >
-                    <v-select
-                      v-model="product.suppliers"
-                      :items="suppliers"
-                      label="Fornecedor"
-                      :rules="[v => v && v.length > 0 || 'Insira um fornecedor']"
-                      multiple
-                      required
-                    ></v-select>
-                  </v-col>
-                </v-row>
-              </v-container>
-            </v-card-text>
-
-            <v-card-actions>
-              <v-spacer></v-spacer>
-              <v-btn
-                color="blue-darken-1"
-                variant="text"
-                @click="close"
-              >
-                Cancelar
-              </v-btn>
-              <v-btn
-                color="blue-darken-1"
-                variant="text"
-                @click="save"
-              >
-                Salvar
-              </v-btn>
-            </v-card-actions>
+            <form id="form" @submit.prevent="save">
+              <v-card-title>
+                <span class="text-h5">{{ formTitle }}</span>
+              </v-card-title>
+              <v-card-text>
+                <v-container>
+                  <v-row>
+                    <v-col cols="12" md="4" sm="6">
+                      <v-text-field
+                        v-model="product.name"
+                        :rules="[v => !!v || 'Insira um nome']"
+                        :error-messages="nameErrors"
+                        required
+                        label="Nome"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="12" md="4" sm="6">
+                      <v-text-field
+                        v-model="product.quantity"
+                        type="number"
+                        :rules="[v => !!v || 'Insira uma quantidade']"
+                        :error-messages="quantityErrors"
+                        required
+                        label="Quantidade"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="12" md="4" sm="6">
+                      <v-select
+                        v-model="product.suppliers"
+                        :items="suppliers"
+                        label="Fornecedor"
+                        :rules="[v => v && v.length > 0 || 'Insira um fornecedor']"
+                        :error-messages="suppliersErrors"
+                        multiple
+                        required
+                      ></v-select>
+                    </v-col>
+                  </v-row>
+                </v-container>
+              </v-card-text>
+              <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn color="blue-darken-1" variant="text" @click="close" type="button">Cancelar</v-btn>
+                <v-btn color="blue-darken-1" variant="text" type="submit">Salvar</v-btn>
+              </v-card-actions>
+            </form>
           </v-card>
         </v-dialog>
         <v-dialog v-model="dialogDelete" max-width="500px">
@@ -112,19 +72,8 @@
       </v-toolbar>
     </template>
     <template v-slot:item.actions="{ item }">
-      <v-icon
-        class="me-2"
-        size="small"
-        @click="editProduct(item)"
-      >
-        mdi-pencil
-      </v-icon>
-      <v-icon
-        size="small"
-        @click="deleteProduct(item)"
-      >
-        mdi-delete
-      </v-icon>
+      <v-icon class="me-2" size="small" @click="editProduct(item)">mdi-pencil</v-icon>
+      <v-icon size="small" @click="deleteProduct(item)">mdi-delete</v-icon>
     </template>
   </v-data-table>
 </template>
@@ -137,6 +86,10 @@ export default {
     return {
       dialog: false,
       dialogDelete: false,
+      valid: false,
+      nameErrors: [],
+      quantityErrors: [],
+      suppliersErrors: [],
       headers: [
         { text: 'Nome', align: 'left', sortable: false, value: 'name' },
         { text: 'Quantidade', value: 'quantity' },
@@ -222,11 +175,10 @@ export default {
 
     editProduct(item) {
       this.editedIndex = item.id;
-      this.product = {...item};
-
+      this.product = { ...item };
 
       this.product.suppliers = this.product.suppliers.map(supplierName => {
-        return this.suppliers.find(supplier => supplier.text === supplierName);
+        return this.suppliers.find(supplier => supplier.text === supplierName).value;
       });
 
       this.dialog = true;
@@ -257,21 +209,49 @@ export default {
     },
 
     close() {
-      this.dialog = false
+      this.dialog = false;
       this.$nextTick(() => {
-        this.editedIndex = -1
-      })
+        this.editedIndex = -1;
+      });
     },
 
-    closeDelete () {
-      this.dialogDelete = false
+    closeDelete() {
+      this.dialogDelete = false;
       this.$nextTick(() => {
-        this.product = Object.assign({}, this.defaultItem)
-        this.editedIndex = -1
-      })
+        this.product = Object.assign({}, this.defaultItem);
+        this.editedIndex = -1;
+      });
     },
 
-    async save () {
+    validateForm() {
+      this.nameErrors = [];
+      this.quantityErrors = [];
+      this.suppliersErrors = [];
+
+      let isValid = true;
+
+      if (!this.product.name) {
+        this.nameErrors.push('Insira um nome');
+        isValid = false;
+      }
+      if (!this.product.quantity) {
+        this.quantityErrors.push('Insira uma quantidade');
+        isValid = false;
+      }
+      if (!this.product.suppliers.length) {
+        this.suppliersErrors.push('Insira um fornecedor');
+        isValid = false;
+      }
+
+      return isValid;
+    },
+
+    async save() {
+      if (!this.validateForm()) {
+        console.log('Formulário inválido');
+        return;
+      }
+
       if (this.editedIndex == -1) {
         try {
           await this.$axios({
@@ -280,7 +260,7 @@ export default {
             data: this.product
           });
           await this.fetchProducts();
-          close();
+          this.close();
           this.product = {
             name: '',
             suppliers: [],
@@ -295,10 +275,10 @@ export default {
           var suppliersIds = [];
 
           this.product.suppliers.forEach(s => {
-            if(typeof s == 'string') {
+            if (typeof s == 'string') {
               var productSuppliers = this.suppliers.find(item => item.text == s);
 
-              if(productSuppliers) {
+              if (productSuppliers) {
                 var supplierValue = productSuppliers.value;
                 suppliersIds.push(supplierValue);
               } else {
@@ -307,23 +287,23 @@ export default {
             }
           });
 
-          if(suppliersIds.length) {
-            this.product.suppliers = suppliersIds
+          if (suppliersIds.length) {
+            this.product.suppliers = suppliersIds;
           }
 
           await this.$axios({
             method: 'PUT',
             url: `https://localhost:7006/Product/${this.editedIndex}`,
-            data: {...this.product, Id: this.product.id }
+            data: { ...this.product, Id: this.product.id }
           });
           await this.fetchProducts();
-          close();
+          this.close();
         } catch (error) {
           console.error('Erro ao enviar produto:', error);
         }
 
       }
-      this.close()
+      this.close();
     },
   },
 }

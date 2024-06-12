@@ -29,46 +29,48 @@
           max-width="500px"
         >
           <v-card>
-            <v-card-title>
-              <span class="text-h5">{{ formTitle }}</span>
-            </v-card-title>
+            <v-form ref="form">
+              <v-card-title>
+                <span class="text-h5">{{ formTitle }}</span>
+              </v-card-title>
 
-            <v-card-text>
-              <v-container>
-                <v-row>
-                  <v-col
-                    cols="12"
-                    md="4"
-                    sm="6"
-                  >
-                    <v-text-field
-                      v-model="supplier.name"
-                      :rules="[v => !!v || 'Insira um nome']"
-                      required
-                      label="Nome"
-                    ></v-text-field>
-                  </v-col>
-                </v-row>
-              </v-container>
-            </v-card-text>
+              <v-card-text>
+                <v-container>
+                  <v-row>
+                    <v-col
+                      cols="12"
+                      md="4"
+                      sm="6"
+                    >
+                      <v-text-field
+                        v-model="supplier.name"
+                        :rules="[v => !!v || 'Insira um nome']"
+                        required
+                        label="Nome"
+                      ></v-text-field>
+                    </v-col>
+                  </v-row>
+                </v-container>
+              </v-card-text>
 
-            <v-card-actions>
-              <v-spacer></v-spacer>
-              <v-btn
-                color="blue-darken-1"
-                variant="text"
-                @click="close"
-              >
-                Cancelar
-              </v-btn>
-              <v-btn
-                color="blue-darken-1"
-                variant="text"
-                @click="save"
-              >
-                Salvar
-              </v-btn>
-            </v-card-actions>
+              <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn
+                  color="blue-darken-1"
+                  variant="text"
+                  @click="close"
+                >
+                  Cancelar
+                </v-btn>
+                <v-btn
+                  color="blue-darken-1"
+                  variant="text"
+                  @click="save"
+                >
+                  Salvar
+                </v-btn>
+              </v-card-actions>
+            </v-form>
           </v-card>
         </v-dialog>
         <v-dialog v-model="dialogDelete" max-width="500px">
@@ -208,6 +210,11 @@ export default {
     },
 
     async save () {
+      const isValid = await this.$refs.form.validate();
+      if (!isValid) {
+        return;
+      }
+
       if (this.editedIndex == -1) {
         try {
           await this.$axios({
@@ -216,27 +223,25 @@ export default {
             data: this.supplier
           });
           await this.fetchSuppliers();
-          close();
           this.supplier = { name: '' };
         } catch (error) {
           console.error('Erro ao enviar fornecedor:', error);
         }
-
       } else {
         try {
+          delete this.supplier.products;
+
           await this.$axios({
             method: 'PUT',
             url: `https://localhost:7006/Supplier/${this.editedIndex}`,
             data: this.supplier
           });
           await this.fetchSuppliers();
-          close();
         } catch (error) {
-          console.error('Erro ao enviar produto:', error);
+          console.error('Erro ao enviar fornecedor:', error);
         }
-
       }
-      this.close()
+      this.close();
     },
   },
 }
